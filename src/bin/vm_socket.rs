@@ -25,9 +25,9 @@ fn main() -> std::io::Result<()> {
 
     socket::bind(server_socket, &SockAddr::Unix(server_addr)).unwrap();
     socket::listen(server_socket, pipe::MAX_CLIENTS).unwrap();
-
+    Command::new("gnome-terminal");
     loop {
-        Command::new("gnome-terminal");
+
         let client = socket::accept(server_socket).unwrap();
         let host_socket = socket::socket(
             AddressFamily::Vsock,
