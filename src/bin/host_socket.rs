@@ -20,13 +20,16 @@ fn main() -> std::io::Result<()> {
 
     socket::listen(vm_socket, pipe::MAX_CLIENTS).unwrap();
 
+
     let wl_name = env::var("WAYLAND_DISPLAY").unwrap();
     let runtime_path = env::var("XDG_RUNTIME_DIR").unwrap();
     let wl_path = format!("{}/{}", runtime_path, wl_name);
     let wl_addr = SockAddr::new_unix(Path::new(&wl_path)).unwrap();
 
     loop {
+        println!("Listening for connection...");
         let window_fd = socket::accept(vm_socket).unwrap();
+        println!("Received connection!");
         let wl_socket = socket::socket(
             AddressFamily::Unix,
             SockType::Stream,

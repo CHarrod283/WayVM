@@ -1,6 +1,7 @@
 use std::{env, thread};
 use nix::sys::socket;
 use std::path::Path;
+use std::process::Command;
 use nix::sys::socket::{AddressFamily, SockAddr, SockFlag, SockType, UnixAddr};
 
 mod pipe;
@@ -26,6 +27,7 @@ fn main() -> std::io::Result<()> {
     socket::listen(server_socket, pipe::MAX_CLIENTS).unwrap();
 
     loop {
+        Command::new("gnome-terminal");
         let client = socket::accept(server_socket).unwrap();
         let host_socket = socket::socket(
             AddressFamily::Vsock,
