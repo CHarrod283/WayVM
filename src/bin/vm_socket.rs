@@ -25,18 +25,21 @@ fn main() -> std::io::Result<()> {
 
     socket::bind(server_socket, &SockAddr::Unix(server_addr)).unwrap();
     socket::listen(server_socket, pipe::MAX_CLIENTS).unwrap();
+    println!("Spawning terminal");
     Command::new("gnome-terminal");
     loop {
-
+        println!("Listening for new client");
         let client = socket::accept(server_socket).unwrap();
+        println!("Accepted new client");
         let host_socket = socket::socket(
             AddressFamily::Vsock,
             SockType::Stream,
             SockFlag::SOCK_CLOEXEC,
             None
         ).unwrap();
-
+        println!("Connecting to host machine...");
         socket::connect(host_socket, &SockAddr::new_vsock(pipe::VMADDR_CID_HOST, pipe::PORT_NUM)).unwrap();
+        println!("Forwarding new client...");
         thread::spawn(move || pipe::pipe(client, host_socket));
         thread::spawn(move || pipe::pipe(host_socket, client));
     }

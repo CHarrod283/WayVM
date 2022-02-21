@@ -1,6 +1,5 @@
-use std::{env, path, thread};
+use std::{env, thread};
 use std::path::Path;
-use nix::NixPath;
 use nix::sys::socket;
 use nix::sys::socket::{AddressFamily, SockAddr, SockFlag, SockType};
 
