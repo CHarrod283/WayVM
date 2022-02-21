@@ -1,27 +1,42 @@
+use std::{env, path, thread};
+use std::path::Path;
+use nix::NixPath;
 use nix::sys::socket;
-use nix::sys::ioctl;
+use nix::sys::socket::{AddressFamily, SockAddr, SockFlag, SockType};
+
+mod pipe;
 
 fn main() -> std::io::Result<()> {
-    let cid = get_local_cid();
-
     // Establish connection-oriented socket
-    let socket = socket::socket(
-        socket::AddressFamily::Vsock,
-        socket::SockType::Stream,
-        socket::SockFlag::empty(),
-        socket::SockProtocol::Tcp
+    let vm_socket = socket::socket(
+        AddressFamily::Vsock,
+        SockType::Stream,
+        SockFlag::SOCK_CLOEXEC,
+        None
     ).unwrap();
 
     // Bind socket to local context id, port 5523
-    let socket_addr = socket::SockAddr::new_vsock(cid, 5523);
+    socket::bind(vm_socket, &SockAddr::new_vsock(pipe::VMADDR_CID_ANY, pipe::PORT_NUM)).unwrap();
 
-    socket::bind(socket, &socket_addr).unwrap();
+    socket::listen(vm_socket, pipe::MAX_CLIENTS).unwrap();
 
-    socket::listen(socket, 32).unwrap();
+    let wl_name = env::var("WAYLAND_DISPLAY").unwrap();
+    let runtime_path = env::var("XDG_RUNTIME_DIR").unwrap();
+    let wl_path = format!("{}/{}", runtime_path, wl_name);
+    let wl_addr = SockAddr::new_unix(Path::new(&wl_path)).unwrap();
 
-    Ok(())
-}
+    loop {
+        let window_fd = socket::accept(vm_socket).unwrap();
+        let wl_socket = socket::socket(
+            AddressFamily::Unix,
+            SockType::Stream,
+            SockFlag::SOCK_CLOEXEC,
+            None
+        ).unwrap();
 
-fn get_local_cid() -> u32 {
-    return 0;
+        socket::connect(wl_socket, &wl_addr ).unwrap();
+        thread::spawn(move || pipe::pipe(window_fd, wl_socket));
+        thread::spawn(move || pipe::pipe(wl_socket, window_fd));
+    }
+
 }
